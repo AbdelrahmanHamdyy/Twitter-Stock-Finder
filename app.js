@@ -36,11 +36,11 @@ let driver;
 
 // Function to setup the Selenium WebDriver with Chrome
 const setupDriver = async () => {
-  // Create a new WebDriver with Chrome and set the options
+  // Create a new WebDriver with Chrome in headless mode and set the options
   driver = await new Builder()
     .forBrowser("chrome")
     .setChromeOptions(
-      new chrome.Options().addArguments("--start-maximized").windowSize(screen)
+      new chrome.Options().addArguments("--headless").windowSize(screen)
     )
     .build();
 };
@@ -91,15 +91,19 @@ const scrapeTwitterAccount = async (url) => {
 
       // Loop through each tweet element
       for (let tweet of newTweets) {
-        // Find the tweet text element within the tweet element by xpath
-        let tweetText = await tweet
-          .findElement(By.xpath('.//div[@data-testid="tweetText"]'))
-          .getText(); // Get tweet text
+        try {
+          // Find the tweet text element within the tweet element by xpath
+          let tweetText = await tweet
+            .findElement(By.xpath('.//div[@data-testid="tweetText"]'))
+            .getText(); // Get tweet text
 
-        // Check if the tweet text is not already in the array
-        if (!tweets.includes(tweetText)) {
-          // Tweet is new and no duplicates found
-          tweets.push(tweetText); // Add unique tweet to the array
+          // Check if the tweet text is not already in the array
+          if (!tweets.includes(tweetText)) {
+            // Tweet is new and no duplicates found
+            tweets.push(tweetText); // Add unique tweet to the array
+          }
+        } catch (e) {
+          console.log("Tweet does not have text element, skipping...");
         }
       }
 
@@ -150,7 +154,7 @@ const scrapeAllAccounts = async () => {
     // Add the number of mentions to the total count
     totalCount += count;
   }
-
+  // Log the total count of mentions
   console.log(
     `\n'${stockSymbol}' was mentioned '${totalCount}' times in the last '${
       interval / 60000
@@ -165,6 +169,7 @@ const scrapeAllAccounts = async () => {
   await scrapeAllAccounts(); // Scrape all accounts
 
   setInterval(async () => {
+    console.log("\nScraping all accounts again...");
     await scrapeAllAccounts(); // Scrape all accounts at regular intervals
   }, interval);
 })();
