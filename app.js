@@ -1,6 +1,10 @@
-const { Builder, By, until } = require("selenium-webdriver");
+const { Builder, By, Key, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
+require("dotenv").config();
 
+const { TWITTER_USERNAME, TWITTER_PASSWORD } = process.env;
+
+// Twitter accounts to scrape
 const twitterAccounts = [
   "https://twitter.com/Mr_Derivatives",
   "https://twitter.com/warrior_0719",
@@ -14,25 +18,46 @@ const twitterAccounts = [
   "https://twitter.com/RoyLMattox",
 ];
 
-const stockSymbol = "Warrior";
+const stockSymbol = "AMZN";
 const interval = 15 * 60000;
 
 const screen = {
-  width: 640,
-  height: 480,
+  width: 1280,
+  height: 960,
+};
+
+let driver;
+
+// Setup the Selenium WebDriver with Chrome
+const setupDriver = async () => {
+  driver = await new Builder()
+    .forBrowser("chrome")
+    .setChromeOptions(
+      new chrome.Options().addArguments("--start-maximized").windowSize(screen)
+    )
+    .build();
+};
+
+const login = async () => {
+  await driver.get("https://x.com/i/flow/login");
+
+  const username = await driver.wait(
+    until.elementLocated(By.css('input[autocomplete="username"]')),
+    10000
+  );
+  await username.sendKeys(TWITTER_USERNAME, Key.ENTER);
+
+  const password = await driver.wait(
+    until.elementLocated(By.css('input[autocomplete="current-password"]')),
+    10000
+  );
+  await password.sendKeys(TWITTER_PASSWORD, Key.ENTER);
+
+  await driver.sleep(5000);
 };
 
 const scrapeTwitterAccount = async (url) => {
-  let driver;
   try {
-    // Setup the Selenium WebDriver with Chrome
-    driver = new Builder()
-      .forBrowser("chrome")
-      .setChromeOptions(
-        new chrome.Options().addArguments("--headless").windowSize(screen)
-      )
-      .build();
-
     // Navigate to the Twitter page
     await driver.get(url);
 
@@ -49,10 +74,13 @@ const scrapeTwitterAccount = async (url) => {
         let tweetText = await tweet
           .findElement(By.xpath('.//div[@data-testid="tweetText"]'))
           .getText();
-        tweets.push(tweetText);
+
+        if (!tweets.includes(tweetText)) {
+          tweets.push(tweetText);
+        }
       }
       await driver.executeScript(
-        "window.scrollTo(0, document.body.scrollHeight);"
+        "window.scrollTo(0, document.body.scrollHeight / 2);"
       );
       await driver.sleep(3000); // Adjust sleep time as needed
       let newHeight = await driver.executeScript(
@@ -63,17 +91,14 @@ const scrapeTwitterAccount = async (url) => {
       }
       lastHeight = newHeight;
     }
-
-    const regex = new RegExp(stockSymbol, "gi");
+    console.log(tweets.length);
+    console.log(tweets);
+    const regex = new RegExp(`\\$${stockSymbol}`, "gi");
     const matches = tweets.join(" ").match(regex);
     return matches ? matches.length : 0;
   } catch (error) {
     console.error(`Error scraping ${url}:`, error);
     return 0;
-  } finally {
-    if (driver) {
-      await driver.quit();
-    }
   }
 };
 
@@ -93,9 +118,12 @@ const scrapeAllAccounts = async () => {
   );
 };
 
-const startScraping = () => {
-  scrapeAllAccounts();
-  setInterval(scrapeAllAccounts, interval);
-};
-
-startScraping();
+// Start the scraping process
+(async () => {
+  await setupDriver();
+  await login();
+  await scrapeAllAccounts();
+  setInterval(async () => {
+    await scrapeAllAccounts();
+  }, interval);
+})();
