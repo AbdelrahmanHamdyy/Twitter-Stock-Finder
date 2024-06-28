@@ -21,8 +21,8 @@ const twitterAccounts = [
   "https://twitter.com/RoyLMattox",
 ];
 
-const MAX_TWEETS = 10; // Maximum number of tweets to scrape
-const stockSymbol = "AMZN"; // The stock symbol to search for in tweets
+const MIN_TWEETS = 10; // Minimum number of tweets to scrape
+const stockSymbol = "TSLA"; // The stock symbol to search for in tweets
 const interval = 15 * 60000; // Time interval for scraping in milliseconds
 
 // Set screen width and height for the browser window
@@ -119,8 +119,8 @@ const scrapeTwitterAccount = async (url) => {
         "return document.body.scrollHeight"
       );
       // If the height hasn't changed, this means that there are no more tweets to load
-      if (newHeight === lastHeight || tweets.length > MAX_TWEETS) {
-        break; // Break the loop if no new tweets are loaded or more than MAX_TWEETS tweets are collected
+      if (newHeight === lastHeight || tweets.length > MIN_TWEETS) {
+        break; // Break the loop if no new tweets are loaded or more than MIN_TWEETS tweets are collected
       }
       // Update the last height to the new height
       lastHeight = newHeight;
